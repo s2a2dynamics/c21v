@@ -10,4 +10,5 @@ dotenv_1.default.config();
 // Iniciamos Gemini solo si hay API Key, si no, no explotamos
 const apiKey = process.env.GOOGLE_API_KEY || '';
 const genAI = new generative_ai_1.GoogleGenerativeAI(apiKey);
-exports.aiModel = genAI.getGenerativeModel({ model: 'gemini-pro' });
+// Usamos el modelo moderno sugerido por Antigravity
+exports.aiModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });

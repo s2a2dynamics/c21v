@@ -7,4 +7,5 @@ dotenv.config();
 const apiKey = process.env.GOOGLE_API_KEY || '';
 const genAI = new GoogleGenerativeAI(apiKey);
 
-export const aiModel = genAI.getGenerativeModel({ model: 'gemini-pro' });
+// Usamos el modelo moderno sugerido por Antigravity
+export const aiModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
