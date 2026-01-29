@@ -2,91 +2,55 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PropertyService = void 0;
 const database_1 = require("../config/database");
-const SEARCH_BASE = "https://www.century21.com.ve/inmuebles?busqueda=";
 class PropertyService {
-    // Lógica para leer JSONs sucios de la BD antigua
-    parseCache(cacheString) {
-        if (typeof cacheString === 'string') {
-            try {
-                return JSON.parse(cacheString);
-            }
-            catch (e) {
-                return null;
-            }
-        }
-        return cacheString;
-    }
-    // Búsqueda Principal
     async findAll(ciudad, operacion) {
-        let query = `
-      SELECT 
-        p.id, p.encabezado, p.descripcion, p.precioVenta, p.precioRenta, 
-        p.moneda, p.recamaras, p.banios, p.municipio, p.colonia, 
-        p.tipoOperacion, p.m2C,
-        u.nickname as nombre_asesor, u.telMovil as tel_asesor, u.cache as cache_asesor
-      FROM propiedades p
-      LEFT JOIN usuarios u ON p.idAsesorExclusiva = u.id
-      WHERE p.status = 'enPromocion'
-      AND p.encabezado IS NOT NULL AND p.encabezado != ''
-      AND (p.precioVenta > 0 OR p.precioRenta > 0)
-    `;
-        const params = [];
-        if (ciudad) {
-            query += ` AND p.municipio LIKE ?`;
-            params.push(`%${ciudad}%`);
-        }
-        if (operacion) {
-            query += ` AND p.tipoOperacion LIKE ?`;
-            params.push(`%${operacion}%`);
-        }
-        query += ` ORDER BY p.id DESC LIMIT 10`;
-        // Ejecutamos la consulta
-        const [rows] = await database_1.pool.execute(query, params);
-        if (rows.length === 0)
-            return [];
-        // Buscar fotos para estas propiedades
-        const ids = rows.map((p) => p.id).join(',');
-        const [fotos] = await database_1.pool.execute(`
-      SELECT idPropiedades, cache, orden FROM fotos 
-      WHERE idPropiedades IN (${ids}) ORDER BY orden ASC
-    `);
-        // Procesar y limpiar datos
-        return rows.map((casa, index) => {
-            var _a;
-            // 1. Procesar Galería (Buscando fotos grandes o thumbnails)
-            const susFotos = fotos
-                .filter((f) => f.idPropiedades === casa.id)
-                .map((f) => {
-                var _a, _b;
-                const data = this.parseCache(f.cache);
-                if ((_a = data === null || data === void 0 ? void 0 : data.propiedadLarge) === null || _a === void 0 ? void 0 : _a.path)
-                    return data.propiedadLarge.path;
-                if ((_b = data === null || data === void 0 ? void 0 : data.propiedadThumbnail) === null || _b === void 0 ? void 0 : _b.path)
-                    return data.propiedadThumbnail.path;
-                return null;
-            })
-                .filter((url) => url !== null)
-                .slice(0, 5);
-            // 2. Procesar Avatar Asesor
-            let avatarUrl = null;
-            const cacheAsesor = this.parseCache(casa.cache_asesor);
-            if ((_a = cacheAsesor === null || cacheAsesor === void 0 ? void 0 : cacheAsesor.asesorThumbnail) === null || _a === void 0 ? void 0 : _a.path) {
-                avatarUrl = cacheAsesor.asesorThumbnail.path;
+        try {
+            console.log("🚩 [PUNTO DE CONTROL 1] Iniciando consulta a Base de Datos...");
+            // 1. QUERY DE PROPIEDADES
+            let query = `
+        SELECT 
+          p.id as id_propiedad_real,
+          p.encabezado,
+          p.precioVenta,
+          p.precioRenta,
+          p.moneda,
+          p.municipio,
+          p.status,
+          u.nombre as nombre_asesor,
+          u.telMovil as telefono_asesor,
+          u.cache as cache_asesor
+        FROM propiedades p
+        LEFT JOIN usuarios u ON p.idAsesorExclusiva = u.id
+        WHERE 1=1 
+      `;
+            // NOTA: Quitamos filtros estrictos temporalmente para ver si llega ALGO
+            // Solo dejamos el límite para no saturar
+            query += ' ORDER BY p.id DESC LIMIT 5';
+            console.log("🚩 [PUNTO DE CONTROL 2] Ejecutando SQL:", query);
+            const [propiedades] = await database_1.db.query(query);
+            console.log(`🚩 [PUNTO DE CONTROL 3] La DB respondió. Filas encontradas: ${propiedades ? propiedades.length : 0}`);
+            if (!propiedades || propiedades.length === 0) {
+                console.warn("⚠️ ALERTA: La base de datos devolvió 0 propiedades. Revisa la conexión o si la tabla está vacía.");
+                return { propiedades: [], fotos: [] };
             }
-            else {
-                avatarUrl = `https://ui-avatars.com/api/?name=${casa.nombre_asesor || 'C21'}&background=f0f0f0&color=333`;
+            // Imprimimos la primera propiedad para ver qué columnas trae realmente
+            console.log("🚩 [PUNTO DE CONTROL 4] Muestra de datos crudos (Primera fila):", JSON.stringify(propiedades[0], null, 2));
+            // 2. QUERY DE FOTOS
+            const ids = propiedades.map((r) => r.id_propiedad_real).join(',');
+            let fotos = [];
+            if (ids.length > 0) {
+                const queryFotos = `SELECT idPropiedades, cache, orden FROM fotos WHERE idPropiedades IN (${ids}) ORDER BY orden ASC`;
+                const [fotosRows] = await database_1.db.query(queryFotos);
+                fotos = fotosRows;
+                console.log(`🚩 [PUNTO DE CONTROL 5] Fotos encontradas: ${fotos.length}`);
             }
-            // 3. Generar Link de Zona (Solución Sandbox)
-            const zonaBusqueda = casa.colonia || casa.municipio || "Venezuela";
-            const linkZona = `${SEARCH_BASE}${encodeURIComponent(zonaBusqueda)}`;
-            return {
-                ...casa,
-                galeria: susFotos,
-                avatar_final: avatarUrl,
-                link_zona: linkZona,
-                uniqueId: index
-            };
-        });
+            return { propiedades, fotos };
+        }
+        catch (error) {
+            console.error("❌ ERROR CRÍTICO EN SERVICIO:", error.message);
+            // Lanzamos el error para verlo en pantalla
+            throw new Error(`Fallo en DB: ${error.message}`);
+        }
     }
 }
 exports.PropertyService = PropertyService;

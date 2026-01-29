@@ -1,90 +1,64 @@
-import { pool } from '../config/database';
-import { Property } from '../interfaces/property.interface';
-
-const SEARCH_BASE = "https://www.century21.com.ve/inmuebles?busqueda=";
+import { db } from '../config/database';
 
 export class PropertyService {
+  
+  async findAll(ciudad?: string, operacion?: string): Promise<{ propiedades: any[], fotos: any[] }> {
+    try {
+      console.log("🚩 [PUNTO DE CONTROL 1] Iniciando consulta a Base de Datos...");
+      
+      // 1. QUERY DE PROPIEDADES
+      let query = `
+        SELECT 
+          p.id as id_propiedad_real,
+          p.encabezado,
+          p.precioVenta,
+          p.precioRenta,
+          p.moneda,
+          p.municipio,
+          p.status,
+          u.nombre as nombre_asesor,
+          u.telMovil as telefono_asesor,
+          u.cache as cache_asesor
+        FROM propiedades p
+        LEFT JOIN usuarios u ON p.idAsesorExclusiva = u.id
+        WHERE 1=1 
+      `;
+      
+      // NOTA: Quitamos filtros estrictos temporalmente para ver si llega ALGO
+      // Solo dejamos el límite para no saturar
+      query += ' ORDER BY p.id DESC LIMIT 5';
 
-  // Lógica para leer JSONs sucios de la BD antigua
-  private parseCache(cacheString: any): any {
-    if (typeof cacheString === 'string') {
-      try { return JSON.parse(cacheString); } catch (e) { return null; }
-    }
-    return cacheString;
-  }
+      console.log("🚩 [PUNTO DE CONTROL 2] Ejecutando SQL:", query);
+      
+      const [propiedades] = await db.query(query) as any[];
 
-  // Búsqueda Principal
-  async findAll(ciudad?: string, operacion?: string): Promise<Property[]> {
-    let query = `
-      SELECT 
-        p.id, p.encabezado, p.descripcion, p.precioVenta, p.precioRenta, 
-        p.moneda, p.recamaras, p.banios, p.municipio, p.colonia, 
-        p.tipoOperacion, p.m2C,
-        u.nickname as nombre_asesor, u.telMovil as tel_asesor, u.cache as cache_asesor
-      FROM propiedades p
-      LEFT JOIN usuarios u ON p.idAsesorExclusiva = u.id
-      WHERE p.status = 'enPromocion'
-      AND p.encabezado IS NOT NULL AND p.encabezado != ''
-      AND (p.precioVenta > 0 OR p.precioRenta > 0)
-    `;
+      console.log(`🚩 [PUNTO DE CONTROL 3] La DB respondió. Filas encontradas: ${propiedades ? propiedades.length : 0}`);
 
-    const params: any[] = [];
-    if (ciudad) {
-      query += ` AND p.municipio LIKE ?`;
-      params.push(`%${ciudad}%`);
-    }
-    if (operacion) {
-      query += ` AND p.tipoOperacion LIKE ?`;
-      params.push(`%${operacion}%`);
-    }
-
-    query += ` ORDER BY p.id DESC LIMIT 10`;
-
-    // Ejecutamos la consulta
-    const [rows]: any = await pool.execute(query, params);
-    if (rows.length === 0) return [];
-
-    // Buscar fotos para estas propiedades
-    const ids = rows.map((p: any) => p.id).join(',');
-    const [fotos]: any = await pool.execute(`
-      SELECT idPropiedades, cache, orden FROM fotos 
-      WHERE idPropiedades IN (${ids}) ORDER BY orden ASC
-    `);
-
-    // Procesar y limpiar datos
-    return rows.map((casa: any, index: number) => {
-      // 1. Procesar Galería (Buscando fotos grandes o thumbnails)
-      const susFotos = fotos
-        .filter((f: any) => f.idPropiedades === casa.id)
-        .map((f: any) => {
-          const data = this.parseCache(f.cache);
-          if (data?.propiedadLarge?.path) return data.propiedadLarge.path;
-          if (data?.propiedadThumbnail?.path) return data.propiedadThumbnail.path;
-          return null;
-        })
-        .filter((url: string | null) => url !== null)
-        .slice(0, 5);
-
-      // 2. Procesar Avatar Asesor
-      let avatarUrl = null;
-      const cacheAsesor = this.parseCache(casa.cache_asesor);
-      if (cacheAsesor?.asesorThumbnail?.path) {
-        avatarUrl = cacheAsesor.asesorThumbnail.path;
-      } else {
-        avatarUrl = `https://ui-avatars.com/api/?name=${casa.nombre_asesor || 'C21'}&background=f0f0f0&color=333`;
+      if (!propiedades || propiedades.length === 0) {
+        console.warn("⚠️ ALERTA: La base de datos devolvió 0 propiedades. Revisa la conexión o si la tabla está vacía.");
+        return { propiedades: [], fotos: [] };
       }
 
-      // 3. Generar Link de Zona (Solución Sandbox)
-      const zonaBusqueda = casa.colonia || casa.municipio || "Venezuela";
-      const linkZona = `${SEARCH_BASE}${encodeURIComponent(zonaBusqueda)}`;
+      // Imprimimos la primera propiedad para ver qué columnas trae realmente
+      console.log("🚩 [PUNTO DE CONTROL 4] Muestra de datos crudos (Primera fila):", JSON.stringify(propiedades[0], null, 2));
 
-      return {
-        ...casa,
-        galeria: susFotos,
-        avatar_final: avatarUrl,
-        link_zona: linkZona,
-        uniqueId: index
-      };
-    });
+      // 2. QUERY DE FOTOS
+      const ids = propiedades.map((r: any) => r.id_propiedad_real).join(',');
+      let fotos: any[] = [];
+      
+      if (ids.length > 0) {
+        const queryFotos = `SELECT idPropiedades, cache, orden FROM fotos WHERE idPropiedades IN (${ids}) ORDER BY orden ASC`;
+        const [fotosRows] = await db.query(queryFotos) as any[];
+        fotos = fotosRows;
+        console.log(`🚩 [PUNTO DE CONTROL 5] Fotos encontradas: ${fotos.length}`);
+      }
+
+      return { propiedades, fotos };
+
+    } catch (error: any) {
+      console.error("❌ ERROR CRÍTICO EN SERVICIO:", error.message);
+      // Lanzamos el error para verlo en pantalla
+      throw new Error(`Fallo en DB: ${error.message}`);
+    }
   }
 }
