@@ -2,7 +2,7 @@
 
 ¡Excelente, Socio! Veo en tu captura que ya estás dentro de la carpeta `c21v`. Esto nos ahorra tiempo. Vamos a actualizar tu código con el nuevo refactor estratégico.
 
-## 1. Sincronizar con GitHub (Traer la nueva rama)
+### 1. Sincronizar con GitHub (Traer la nueva rama)
 
 Como ya tienes la carpeta, solo tenemos que avisarle a Git que hay una rama nueva llamada `feature/strategic-exercise-c21v`.
 
@@ -11,11 +11,15 @@ Ejecuta este comando:
 git fetch origin
 ```
 
-Ahora, cámbiate a la rama del refactor:
+**Si al intentar cambiar de rama te da un error de "local changes", ejecuta esto para limpiar tu carpeta y forzar el cambio:**
 ```bash
+# Limpia los cambios locales que están bloqueando el camino
+git reset --hard origin/main
+
+# Ahora sí, cámbiate a la rama del refactor
 git checkout feature/strategic-exercise-c21v
 ```
-*(Si te dice que tienes archivos modificados y no te deja cambiar, escribe `git checkout .` para limpiar y vuelve a intentarlo).*
+**¿Qué hace esto?**: `git reset --hard` borra cualquier cambio local "sucio" para dejar la carpeta tal cual está en GitHub, permitiéndote saltar a la nueva rama sin errores.
 
 ---
 
