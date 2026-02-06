@@ -6,32 +6,27 @@ Para probar "en caliente", lo que vamos a hacer es **desplegar el contenedor dir
 
 ---
 
-## 1. Construir la Imagen (Docker + Cloud Build)
+## 1. El "Comando Maestro" (Build + Deploy en uno)
 
-En lugar de compilar solo con `npm`, vamos a empaquetar todo el sistema en un contenedor profesional:
+En lugar de construir y luego desplegar en dos pasos (donde falló el permiso de la imagen), vamos a usar el comando más moderno y sencillo de Google. Este comando detecta tu `Dockerfile`, sube el código, lo empaqueta y lo lanza a Cloud Run automáticamente.
 
-```bash
-# Envía el código a Google para que lo empaquete
-gcloud builds submit --tag gcr.io/$GOOGLE_CLOUD_PROJECT/c21v-app
-```
-*(Espera a que termine. Esto sube tu código a un almacén seguro de imágenes).*
-
----
-
-## 2. Desplegar a Cloud Run con IP Fija
-
-Aquí viene la magia de Arquitecto. Este comando lanza tu app y la conecta al "Túnel VPC" para que salga por tu IP fija:
+Ejecuta esto:
 
 ```bash
 gcloud run deploy c21v-service \
-  --image gcr.io/$GOOGLE_CLOUD_PROJECT/c21v-app \
+  --source . \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated \
   --vpc-connector c21-vpc-connector \
   --vpc-egress all-traffic \
-  --set-env-vars GOOGLE_API_KEY=tu_key,DB_HOST=tu_host,DB_USER=tu_user,DB_PASS=tu_pass,DB_NAME=tu_base
+  --set-env-vars GOOGLE_API_KEY="AIzaSyBX9PKDmHPlx9NMPrg5iJ5EfB68-xn2ULE",DB_HOST="genioi.cmccfp1q8z6i.us-west-2.rds.amazonaws.com",DB_USER="c21venezuela",DB_PASS="hI4xK.yVQjhd_mV2",DB_NAME="venezuela2",DB_PORT="3306"
 ```
+
+### ¿Qué hace `--source .`?
+1. **Sube tu código** a una carpeta temporal.
+2. **Crea la imagen** automáticamente en Artifact Registry (sin que tengas que crear repositorios manualmente).
+3. **Despliega** directamente a Cloud Run.
 
 ### Notas Importantes de Mentor:
 1. **`--vpc-connector`**: Ya he puesto `c21-vpc-connector`, que es el recurso que reservaste.
