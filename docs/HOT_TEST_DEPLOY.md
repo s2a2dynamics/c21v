@@ -29,13 +29,13 @@ gcloud run deploy c21v-service \
   --region us-central1 \
   --allow-unauthenticated \
   --vpc-connector c21-vpc-connector \
-  --egress-settings all-traffic \
+  --vpc-egress all-traffic \
   --set-env-vars GOOGLE_API_KEY=tu_key,DB_HOST=tu_host,DB_USER=tu_user,DB_PASS=tu_pass,DB_NAME=tu_base
 ```
 
 ### Notas Importantes de Mentor:
 1. **`--vpc-connector`**: Ya he puesto `c21-vpc-connector`, que es el recurso que reservaste.
-2. **`--egress-settings all-traffic`**: Esto es CRÍTICO. Obliga a que TODO el tráfico (incluyendo el de la base de datos) pase por el conector para usar tu IP fija.
+2. **`--vpc-egress all-traffic`**: Esto es CRÍTICO. Obliga a que TODO el tráfico (incluyendo el de la base de datos) pase por el conector para usar tu IP fija. El nombre correcto del flag es `--vpc-egress`.
 3. **Variables `--set-env-vars`**: Por ahora las pasamos así para probar rápido ("Hot Test").
 
 ---
