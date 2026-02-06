@@ -1,49 +1,27 @@
-# Guía para Principiantes: Ejecutar C21V en Google Cloud Shell
+# Guía Paso a Paso: Actualizar C21V en Cloud Shell
 
-¡Hola Socio! No te preocupes, como tu mentor estoy aquí para que no te pierdas en ningún paso. Vamos a hacerlo con todo el detalle posible.
+¡Excelente, Socio! Veo en tu captura que ya estás dentro de la carpeta `c21v`. Esto nos ahorra tiempo. Vamos a actualizar tu código con el nuevo refactor estratégico.
 
-## 1. ¿Dónde estoy y a dónde voy? (Navegación)
+## 1. Sincronizar con GitHub (Traer la nueva rama)
 
-Cuando abras Google Cloud Shell, verás una línea de texto que termina en `$`. Eso es el "Prompt" (tu lugar de mando).
+Como ya tienes la carpeta, solo tenemos que avisarle a Git que hay una rama nueva llamada `feature/strategic-exercise-c21v`.
 
-### El comando `pwd` (¿Dónde estoy?)
-Escribe `pwd` y dale a Enter. Te responderá algo como `/home/asuarezh64`. Esa es tu "casa" en la nube. **Es ahí donde debemos empezar.**
-
----
-
-## 2. Descargar el Proyecto (Git Clone)
-
-Copia y pega este comando tal cual. Esto descargará una copia de tu código desde GitHub a tu carpeta en la nube.
-
+Ejecuta este comando:
 ```bash
-git clone https://github.com/s2a2dynamics/c21v.git
+git fetch origin
 ```
 
-Una vez termine, escribe `ls`. Verás una carpeta nueva llamada `c21v`.
-
-### Entrar en la carpeta
-Para trabajar "dentro" del proyecto, debemos entrar en esa carpeta:
-```bash
-cd c21v
-```
-*(Ahora verás que el prompt cambia para mostrar que estás dentro de `c21v`)*.
-
----
-
-## 3. Seleccionar la Rama de Trabajo (Checkout)
-
-Como somos arquitectos, no trabajamos directamente en `main`. Vamos a la rama donde hice todos los cambios nuevos:
-
+Ahora, cámbiate a la rama del refactor:
 ```bash
 git checkout feature/strategic-exercise-c21v
 ```
-**¿Por qué?:** Esto asegura que estás usando la versión con el diseño modular y la nueva IA.
+*(Si te dice que tienes archivos modificados y no te deja cambiar, escribe `git checkout .` para limpiar y vuelve a intentarlo).*
 
 ---
 
-## 4. Instalar las herramientas (npm install)
+## 2. Actualizar Librerías (Zod y otras)
 
-El código necesita librerías externas para funcionar. Ejecuta esto y espera a que terminen de salir líneas en la pantalla:
+He añadido una librería llamada **Zod** para validar tus contraseñas. Necesitamos instalarla:
 
 ```bash
 npm install
@@ -51,48 +29,47 @@ npm install
 
 ---
 
-## 5. El Firewall y la IP Fija (Whitelist)
+## 3. Autorizar tu IP Pública
 
-Tu base de datos es segura y solo deja entrar a IPs conocidas. Cloud Shell te da una IP distinta cada vez. 
+Tu base de datos requiere una IP Fija. Como Cloud Shell cambia de IP, vamos a ver cuál tienes hoy:
 
-**Paso A: Saber la IP de hoy**
 ```bash
 curl ifconfig.me
 ```
-Aparecerá un número (ej: `34.123.45.67`). **Cópialo.**
-
-**Paso B: Abrir el Firewall**
-Ve a donde tengas tu base de datos y añade esa IP en la lista de permitidas para el puerto `3306`.
+**Acción**: Copia ese número y añádelo a la lista de IPs permitidas de tu base de datos (Whitelist).
 
 ---
 
-## 6. Configurar tus Secretos (.env)
+## 4. Configurar tus Secretos (.env)
 
-Necesitamos decirle al programa cuáles son tus contraseñas.
+Ahora vamos a crear tu archivo de configuración. En tu captura no veo un archivo `.env`, así que vamos a crearlo desde la plantilla que te dejé:
 
-1. **Crea el archivo**:
+1. **Crear el archivo**:
    ```bash
    cp .env.example .env
    ```
 
-2. **Edítalo**:
+2. **Editarlo con detalle**:
    ```bash
    nano .env
    ```
-   *Usa las flechas del teclado para moverte. Escribe tu `DB_HOST`, `DB_USER`, `DB_PASS` y tu `GOOGLE_API_KEY`. Cuando termines, pulsa `Ctrl + O` (para guardar), luego `Enter`, y `Ctrl + X` (para salir).*
+   - Baja con las flechas hasta llegar a `DB_HOST`, `DB_USER`, etc.
+   - Borra el texto de ejemplo y escribe tus datos reales.
+   - **Para guardar**: Pulsa `Ctrl + O` y luego `Enter`.
+   - **Para salir**: Pulsa `Ctrl + X`.
 
 ---
 
-## 7. ¡Arrancar!
+## 5. ¡Lanzar el Sistema!
 
-Finalmente, ejecuta:
+Ahora que todo está configurado, arranca el servidor:
 ```bash
 npm run dev
 ```
 
-Si todo está bien, verás un mensaje: `🚀 Servidor C21 + Gemini listo en puerto 8080`.
+### Cómo ver el resultado:
+Mira en la parte de arriba de tu pantalla de Cloud Shell. Hay un icono que dice **"Vista previa en la web"**.
+1. Haz clic ahí.
+2. Elige **"Vista previa en el puerto 8080"**.
 
-### Ver la Web
-En la esquina superior derecha de Cloud Shell, busca un icono de un cuadrado con una flecha (**"Vista previa en la web"**) y selecciona **"Vista previa en el puerto 8080"**.
-
-¡Ahí verás tu nuevo dashboard!
+¡Deberías ver el nuevo diseño modular y poder hablar con la IA sobre tus propiedades!
