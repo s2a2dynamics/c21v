@@ -48,6 +48,32 @@ Como Arquitecto, te explico el flujo:
 ## 4. Verificación Final
 
 Una vez termine el comando de arriba, te dará una **URL de Service**. 
-Ábrela en tu navegador y prueba el Chatbot. Si te responde con datos de la base de datos, ¡hemos conquistado la nube!
 
-¿Tienes el nombre del conector VPC a mano para ayudarte a montar el comando final?
+### Si recibes un error "FAILED_PRECONDITION" (Bloqueo de Organización):
+Google te está diciendo que tu configuración no permite invitar a gente de fuera de tu dominio (`allUsers`). Para hacerlo público, debemos desactivar temporalmente esa restricción:
+
+**Paso A: Desactivar la restricción de dominio**
+```bash
+gcloud resource-manager org-policies disable-enforce iam.allowedPolicyMemberDomains --project=century21venezuela
+```
+
+**Paso B: Hacerlo público (ahora sí)**
+```bash
+gcloud run services add-iam-policy-binding c21v-service \
+  --region=us-central1 \
+  --member="allUsers" \
+  --role="roles/run.invoker"
+```
+
+---
+
+## 5. ¿Donde está mi IP Fija (136.111.17.182)?
+
+Esta es la pregunta de oro. Como Mentor te explico: 
+
+**Esa IP no tiene una página web.** No es una IP que puedas poner en el navegador. 
+
+Esa IP está "escondida" dentro de tu **Cloud NAT**. Imagínala como el **"Identificador de Llamadas"** de tu app. Cuando tu código intenta entrar en la base de datos de AWS, AWS mira quién llama y dice: *"Ah, es la IP 136.111.17.182, adelante"*.
+
+- **La URL de Cloud Run**: Es para que TÚ entres a ver la web.
+- **La IP Fija**: Es para que tu CÓDIGO entre a la base de datos.
