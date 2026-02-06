@@ -6,11 +6,21 @@ Para probar "en caliente", lo que vamos a hacer es **desplegar el contenedor dir
 
 ---
 
-## 1. El "Comando Maestro" (Build + Deploy en uno)
+## 1. Construir la Imagen (Docker + Cloud Build)
 
-En lugar de construir y luego desplegar en dos pasos (donde falló el permiso de la imagen), vamos a usar el comando más moderno y sencillo de Google. Este comando detecta tu `Dockerfile`, sube el código, lo empaqueta y lo lanza a Cloud Run automáticamente.
+En lugar de compilar solo con `npm`, vamos a empaquetar todo el sistema en un contenedor profesional:
 
-Ejecuta esto:
+```bash
+# Envía el código a Google para que lo empaquete
+gcloud builds submit --tag gcr.io/$GOOGLE_CLOUD_PROJECT/c21v-app
+```
+*(Espera a que termine. Esto sube tu código a un almacén seguro de imágenes).*
+
+---
+
+## 2. Desplegar a Cloud Run con IP Fija
+
+Aquí viene la magia de Arquitecto. Este comando lanza tu app y la conecta al "Túnel VPC" para que salga por tu IP fija:
 
 ```bash
 gcloud run deploy c21v-service \
@@ -20,17 +30,12 @@ gcloud run deploy c21v-service \
   --allow-unauthenticated \
   --vpc-connector c21-vpc-connector \
   --vpc-egress all-traffic \
-  --set-env-vars GOOGLE_API_KEY="AIzaSyBX9PKDmHPlx9NMPrg5iJ5EfB68-xn2ULE",DB_HOST="genioi.cmccfp1q8z6i.us-west-2.rds.amazonaws.com",DB_USER="c21venezuela",DB_PASS="hI4xK.yVQjhd_mV2",DB_NAME="venezuela2",DB_PORT="3306"
+  --set-env-vars GOOGLE_API_KEY="TU_GEMINI_API_KEY",DB_HOST="TU_DB_HOST",DB_USER="TU_DB_USER",DB_PASS="TU_DB_PASS",DB_NAME="TU_DB_NAME",DB_PORT="3306"
 ```
-
-### ¿Qué hace `--source .`?
-1. **Sube tu código** a una carpeta temporal.
-2. **Crea la imagen** automáticamente en Artifact Registry (sin que tengas que crear repositorios manualmente).
-3. **Despliega** directamente a Cloud Run.
 
 ### Notas Importantes de Mentor:
 1. **`--vpc-connector`**: Ya he puesto `c21-vpc-connector`, que es el recurso que reservaste.
-2. **`--vpc-egress all-traffic`**: Esto es CRÍTICO. Obliga a que TODO el tráfico (incluyendo el de la base de datos) pase por el conector para usar tu IP fija. El nombre correcto del flag es `--vpc-egress`.
+2. **`--egress-settings all-traffic`**: Esto es CRÍTICO. Obliga a que TODO el tráfico (incluyendo el de la base de datos) pase por el conector para usar tu IP fija.
 3. **Variables `--set-env-vars`**: Por ahora las pasamos así para probar rápido ("Hot Test").
 
 ---
@@ -48,42 +53,6 @@ Como Arquitecto, te explico el flujo:
 ## 4. Verificación Final
 
 Una vez termine el comando de arriba, te dará una **URL de Service**. 
+Ábrela en tu navegador y prueba el Chatbot. Si te responde con datos de la base de datos, ¡hemos conquistado la nube!
 
-### Si recibes un error "INVALID_ARGUMENT" (Bloqueo de Tipo de Política):
-Esto ocurre porque la regla de "Dominios Permitidos" es una **Lista**, no un interruptor de encendido/apagado. Para forzar el acceso público, debemos sobreescribir la lista con un "Permitir Todo".
-
-**Paso A: Crear el archivo de "Permiso Total"**
-Ejecuta esto para crear un pequeño archivo de configuración:
-```bash
-cat <<EOF > public_policy.yaml
-constraint: constraints/iam.allowedPolicyMemberDomains
-list_policy:
-  all_values: ALLOW
-EOF
-```
-
-**Paso B: Aplicar la sobreescritura**
-```bash
-gcloud resource-manager org-policies set-policy public_policy.yaml --project=century21venezuela
-```
-
-**Paso C: Hacer la web pública (Ahora sí)**
-```bash
-gcloud run services add-iam-policy-binding c21v-service \
-  --region=us-central1 \
-  --member="allUsers" \
-  --role="roles/run.invoker"
-```
-
----
-
-## 5. ¿Donde está mi IP Fija (136.111.17.182)?
-
-Esta es la pregunta de oro. Como Mentor te explico: 
-
-**Esa IP no tiene una página web.** No es una IP que puedas poner en el navegador. 
-
-Esa IP está "escondida" dentro de tu **Cloud NAT**. Imagínala como el **"Identificador de Llamadas"** de tu app. Cuando tu código intenta entrar en la base de datos de AWS, AWS mira quién llama y dice: *"Ah, es la IP 136.111.17.182, adelante"*.
-
-- **La URL de Cloud Run**: Es para que TÚ entres a ver la web.
-- **La IP Fija**: Es para que tu CÓDIGO entre a la base de datos.
+¿Tienes el nombre del conector VPC a mano para ayudarte a montar el comando final?
