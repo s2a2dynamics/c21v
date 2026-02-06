@@ -49,15 +49,25 @@ Como Arquitecto, te explico el flujo:
 
 Una vez termine el comando de arriba, te dará una **URL de Service**. 
 
-### Si recibes un error "FAILED_PRECONDITION" (Bloqueo de Organización):
-Google te está diciendo que tu configuración no permite invitar a gente de fuera de tu dominio (`allUsers`). Para hacerlo público, debemos desactivar temporalmente esa restricción:
+### Si recibes un error "INVALID_ARGUMENT" (Bloqueo de Tipo de Política):
+Esto ocurre porque la regla de "Dominios Permitidos" es una **Lista**, no un interruptor de encendido/apagado. Para forzar el acceso público, debemos sobreescribir la lista con un "Permitir Todo".
 
-**Paso A: Desactivar la restricción de dominio**
+**Paso A: Crear el archivo de "Permiso Total"**
+Ejecuta esto para crear un pequeño archivo de configuración:
 ```bash
-gcloud resource-manager org-policies disable-enforce iam.allowedPolicyMemberDomains --project=century21venezuela
+cat <<EOF > public_policy.yaml
+constraint: constraints/iam.allowedPolicyMemberDomains
+list_policy:
+  all_values: ALLOW
+EOF
 ```
 
-**Paso B: Hacerlo público (ahora sí)**
+**Paso B: Aplicar la sobreescritura**
+```bash
+gcloud resource-manager org-policies set-policy public_policy.yaml --project=century21venezuela
+```
+
+**Paso C: Hacer la web pública (Ahora sí)**
 ```bash
 gcloud run services add-iam-policy-binding c21v-service \
   --region=us-central1 \
