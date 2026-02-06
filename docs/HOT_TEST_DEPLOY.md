@@ -28,14 +28,15 @@ gcloud run deploy c21v-service \
   --platform managed \
   --region us-central1 \
   --allow-unauthenticated \
-  --vpc-connector NOMBRE_DE_TU_CONNECTOR \
+  --vpc-connector c21-vpc-connector \
+  --egress-settings all-traffic \
   --set-env-vars GOOGLE_API_KEY=tu_key,DB_HOST=tu_host,DB_USER=tu_user,DB_PASS=tu_pass,DB_NAME=tu_base
 ```
 
 ### Notas Importantes de Mentor:
-1. **`--vpc-connector`**: Reemplaza `NOMBRE_DE_TU_CONNECTOR` con el nombre del conector que mencionaste en tu arquitectura (el que está unido al Cloud NAT con la IP fija).
-2. **Variables `--set-env-vars`**: Por ahora las pasamos así para probar rápido ("Hot Test"), pero en producción usaremos **Secret Manager** para mayor seguridad.
-3. **Región**: Asegúrate de usar la misma región donde está tu conector VPC (ej: `us-central1`).
+1. **`--vpc-connector`**: Ya he puesto `c21-vpc-connector`, que es el recurso que reservaste.
+2. **`--egress-settings all-traffic`**: Esto es CRÍTICO. Obliga a que TODO el tráfico (incluyendo el de la base de datos) pase por el conector para usar tu IP fija.
+3. **Variables `--set-env-vars`**: Por ahora las pasamos así para probar rápido ("Hot Test").
 
 ---
 
