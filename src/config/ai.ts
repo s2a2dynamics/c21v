@@ -1,11 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import dotenv from 'dotenv';
+import { env } from './env';
 
-dotenv.config();
+const genAI = new GoogleGenerativeAI(env.GOOGLE_API_KEY);
 
-// Iniciamos Gemini solo si hay API Key, si no, no explotamos
-const apiKey = process.env.GOOGLE_API_KEY || '';
-const genAI = new GoogleGenerativeAI(apiKey);
-
-// Usamos el modelo moderno sugerido por Antigravity
-export const aiModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+// Usamos el modelo moderno Flash 2.0 (o similar sugerido)
+export const aiModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
