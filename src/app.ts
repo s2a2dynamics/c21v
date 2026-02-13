@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { getPropertiesHTML, chatWithGemini } from './controllers/property.controller';
+import { getPropertiesHTML, chatWithGemini, getRawProperty } from './controllers/property.controller';
 
 const app = express();
 const port = process.env.PORT || 8080;
@@ -15,6 +15,7 @@ app.use(helmet({ contentSecurityPolicy: false }));
 // RUTAS
 app.get('/', getPropertiesHTML);      // La Web para los humanos
 app.post('/api/chat', chatWithGemini); // La API para el cerebro IA
+app.get('/api/debug/raw-property', getRawProperty);
 
 // Encender Servidor
 app.listen(port, () => {
